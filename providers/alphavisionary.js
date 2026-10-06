@@ -105,7 +105,7 @@ async function tmdbMeta(id, mediaType) {
   }
 }
 
-function buildTitle(meta, isMovie, season, episode, source) {
+function buildTitle(meta, isMovie, season, episode, source, quality) {
   var line1;
   if (isMovie) {
     line1 = meta.title ? meta.title + (meta.year ? ' - ' + meta.year : '') : 'Film';
@@ -113,8 +113,43 @@ function buildTitle(meta, isMovie, season, episode, source) {
     line1 = 'S' + two(season || 1) + ' E' + two(episode || 1) + (meta.title ? ' - ' + meta.title : '');
   }
   var line2 = 'Source : ' + source;
-  var line3 = 'M3U8' + (meta.duration ? ' | ' + meta.duration + ' min' : '');
+  var line3 = 'M3U8';
+  if (quality) line3 += ' | ' + quality;
+  if (meta.duration) line3 += ' | ' + meta.duration + ' min';
   return line1 + '\n' + line2 + '\n' + line3;
+}
+
+var qualityCache = {};
+
+function qualityFromResolution(height) {
+  if (height >= 2000) return '2160p';
+  if (height >= 1000) return '1080p';
+  if (height >= 700) return '720p';
+  if (height >= 480) return '480p';
+  if (height >= 360) return '360p';
+  return '';
+}
+
+async function detectQuality(url, headers) {
+  if (qualityCache[url] !== undefined) return qualityCache[url];
+  qualityCache[url] = '';
+  try {
+    var resp = await fetch(url, { headers: headers });
+    if (!resp.ok) return '';
+    var text = await resp.text();
+    var m;
+    var max = 0;
+    var re = /RESOLUTION=(\d{2,5})x(\d{2,5})/g;
+    while ((m = re.exec(text)) !== null) {
+      var h = parseInt(m[2], 10);
+      if (h > max) max = h;
+    }
+    qualityCache[url] = qualityFromResolution(max);
+    return qualityCache[url];
+  } catch (e) {
+    console.warn('[AlphaVisionary] Qualite indisponible pour ' + url + ' : ' + e.message);
+    return '';
+  }
 }
 
 async function getStreams(tmdbId, mediaType, season, episode) {
@@ -150,19 +185,30 @@ async function getStreams(tmdbId, mediaType, season, episode) {
     } else if (host.indexOf('finepulfe.xyz') !== -1) {
       source = 'Pur';
     }
-    var display = buildTitle(meta, isMovie, season, episode, source || host);
     results.push({
       name: 'Source : ' + (source || host),
-      title: display,
-      size: display,
-      description: display,
+      title: '',
+      size: '',
+      description: '',
       url: s.url,
       quality: '',
       language: '',
       format: 'm3u8',
-      headers: headers
+      headers: headers,
+      _source: source || host
     });
   });
+
+  var probes = results.map(function (r) { return detectQuality(r.url, r.headers); });
+  var qualities = await Promise.all(probes);
+  qualities.forEach(function (q, i) {
+    results[i].quality = q;
+    var display = buildTitle(meta, isMovie, season, episode, results[i]._source, q);
+    results[i].title = display;
+    results[i].size = display;
+    results[i].description = display;
+  });
+  results.forEach(function (r) { delete r._source; });
 
   console.log('[AlphaVisionary] ' + results.length + ' stream(s) trouve(s).');
   return results;

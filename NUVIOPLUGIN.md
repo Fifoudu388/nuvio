@@ -167,6 +167,7 @@ Nuvio affiche `name` + `language`. Format "propre" constaté sur Porstream (`All
 - Champ `name` = label court (ex. `Source : Pur`) — remplace le nom du provider.
 - Champ `title`/`description`/`size` = **chaîne multi-lignes** avec `\n`.
 - `quality: ''`, `language: ''` (sinon allergies au `fr` parasite), `format`, `headers`.
+- **Qualité** : l'API ne la donne pas → on la détecte en lisant le `RESOLUTION` du master playlist m3u8 (regex `/RESOLUTION=(\d+)x(\d+)/g`, hauteur max → 2160p/1080p/720p/480p/360p). 1 requête extra par stream (en parallèle via `Promise.all`, cache par URL). Si la playlist est bloquée → `quality: ''`, la détection ne plante jamais.
 - Titre/année/durée : récupérés via TMDB → `GET https://api.themoviedb.org/3/{movie|tv}/{id}?api_key=<globalThis.TMDB_API_KEY>&language=fr-FR` (key dispo en app, pas en local).
 - Fallback si pas de clé TMDB : ligne 1 = `Film` ou `Sxx Exx`.
 
@@ -178,7 +179,7 @@ Nuvio affiche `name` + `language`. Format "propre" constaté sur Porstream (`All
   size:        "Marsupilami - 2026\nSource : VDO\nM3U8 | 99 min",  // pareil que title (pattern Purstream)
   description: "Marsupilami - 2026\nSource : VDO\nM3U8 | 99 min",  // pareil que title (pattern Purstream)
   url:         "https://vdohls.com/.../playlist.m3u8",
-  quality:     "",
+  quality:     "1080p",                // détecté depuis le RESOLUTION du playlist ; "" si indisponible
   language:    "",                        // VIDE = évite le "fr" parasite
   format:      "m3u8",
   headers:     { "User-Agent": "...", "Origin": "https://fembed.co", "Referer": "https://fembed.co/" }

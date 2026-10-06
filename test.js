@@ -8,7 +8,7 @@ async function run(label, fn) {
     console.log(`\n=== ${label} ===`);
     console.log('Streams trouvés:', streams.length);
     streams.forEach((s, i) => {
-      console.log(`  [${i}] name=${JSON.stringify(s.name)}`);
+      console.log(`  [${i}] name=${JSON.stringify(s.name)} quality=${JSON.stringify(s.quality)}`);
       console.log(`      title:\n${s.title.split('\n').map(l => '        ' + l).join('\n')}`);
       console.log(`      ${s.url}`);
       console.log(`      headers: ${JSON.stringify(s.headers)}`);
