@@ -1,0 +1,22 @@
+{
+  "name": "AlphaVisionary Nuvio",
+  "version": "1.0.0",
+  "description": "Plugin Nuvio pour l'API de streaming alpha-visionary.xo.je (films et séries, flux m3u8).",
+  "author": "",
+  "scrapers": [
+    {
+      "id": "alphavisionary",
+      "name": "AlphaVisionary",
+      "description": "Films et séries depuis l'API alpha-visionary.xo.je (flux HLS directs).",
+      "version": "1.0.0",
+      "author": "",
+      "supportedTypes": ["movie", "tv"],
+      "filename": "providers/alphavisionary.js",
+      "enabled": true,
+      "hasSettings": false,
+      "formats": ["m3u8"],
+      "logo": "https://www.google.com/s2/favicons?domain=alpha-visionary.xo.je&sz=128",
+      "contentLanguage": ["fr", "en"]
+    }
+  ]
+}

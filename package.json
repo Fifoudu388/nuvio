@@ -1,0 +1,12 @@
+{
+  "name": "alphavisionary-nuvio",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Plugin Nuvio pour l'API alpha-visionary.xo.je",
+  "scripts": {
+    "test": "node test.js"
+  },
+  "devDependencies": {
+    "crypto-js": "^4.2.0"
+  }
+}
