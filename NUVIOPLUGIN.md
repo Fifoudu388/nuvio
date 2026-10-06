@@ -165,15 +165,31 @@ Repo : `https://github.com/Fifoudu388/nuvio` — manifest : `.../refs/heads/mast
 ### Affichage style Purstream (important pour l'UX)
 Nuvio affiche `name` + `language`. Format "propre" constaté sur Porstream (`All-in-One-Nuvio/providers/purstream.js`) :
 - Champ `name` = label court (ex. `Source : Pur`) — remplace le nom du provider.
-- Champ `title`/`description`/`size` = **chaîne multi-lignes** avec `\n` :
-  ```
-  <Titre> - <Année>        (film)  |  S01 E01 - <Nom série>   (tv)
-  Source : Pur
-  M3U8 | 99 min
-  ```
+- Champ `title`/`description`/`size` = **chaîne multi-lignes** avec `\n`.
 - `quality: ''`, `language: ''` (sinon allergies au `fr` parasite), `format`, `headers`.
 - Titre/année/durée : récupérés via TMDB → `GET https://api.themoviedb.org/3/{movie|tv}/{id}?api_key=<globalThis.TMDB_API_KEY>&language=fr-FR` (key dispo en app, pas en local).
 - Fallback si pas de clé TMDB : ligne 1 = `Film` ou `Sxx Exx`.
+
+**Position exacte des infos dans l'objet stream** (ce qu'un scraper doit retourner) :
+```js
+{
+  name:        "Source : VDO",          // petit label affiché à côté du fournisseur ("VDO"/"Pur")
+  title:       "Marsupilami - 2026\nSource : VDO\nM3U8 | 99 min",  // ligne 1 = titre, puis lignes affichées par Nuvio
+  size:        "Marsupilami - 2026\nSource : VDO\nM3U8 | 99 min",  // pareil que title (pattern Purstream)
+  description: "Marsupilami - 2026\nSource : VDO\nM3U8 | 99 min",  // pareil que title (pattern Purstream)
+  url:         "https://vdohls.com/.../playlist.m3u8",
+  quality:     "",
+  language:    "",                        // VIDE = évite le "fr" parasite
+  format:      "m3u8",
+  headers:     { "User-Agent": "...", "Origin": "https://fembed.co", "Referer": "https://fembed.co/" }
+}
+```
+Nuvio rend le `\n` comme des retours à la ligne → l'utilisateur voit :
+```
+Marsupilami - 2026        ← lignes du champ title/description
+Source : VDO
+M3U8 | 99 min
+```
 
 ### Test local
 `npm test` (test.js) ; clé TMDB optionnelle via env `TMDB_API_KEY`.
