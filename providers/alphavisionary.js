@@ -111,11 +111,10 @@ async function getStreams(tmdbId, mediaType, season, episode) {
       source = 'Pur';
     }
     results.push({
-      name: 'AlphaVisionary',
+      name: 'Source : ' + (source || host),
       title: 'AlphaVisionary — ' + label + ' | Source : ' + (source || host),
       url: s.url,
       quality: '',
-      language: 'fr',
       type: 'hls',
       headers: headers
     });
