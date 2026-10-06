@@ -35,6 +35,14 @@ function solveChallenge(html) {
   return cookie ? '__test=' + cookie : null;
 }
 
+function getHost(url) {
+  try { return new URL(url).hostname; } catch (e) { return ''; }
+}
+
+function isEmbed(url) {
+  return url.indexOf('/embed/') !== -1 || /embed\./.test(getHost(url));
+}
+
 function two(n) {
   return n < 10 ? '0' + n : '' + n;
 }
@@ -88,14 +96,28 @@ async function getStreams(tmdbId, mediaType, season, episode) {
   var results = [];
   (data.streams || []).forEach(function (s) {
     if (!s || !s.url) return;
+    if (isEmbed(s.url)) {
+      console.log('[AlphaVisionary] Lien embed ignore : ' + s.url);
+      return;
+    }
+    var host = getHost(s.url);
+    var headers = { 'User-Agent': USER_AGENT };
+    var source = '';
+    if (host.indexOf('vdohls.com') !== -1) {
+      source = 'VDO';
+      headers['Origin'] = 'https://fembed.co';
+      headers['Referer'] = 'https://fembed.co/';
+    } else if (host.indexOf('finepulfe.xyz') !== -1) {
+      source = 'Pur';
+    }
     results.push({
       name: 'AlphaVisionary',
-      title: 'AlphaVisionary — ' + label,
+      title: 'AlphaVisionary — ' + label + ' | Source : ' + (source || host),
       url: s.url,
       quality: '',
       language: 'fr',
       type: 'hls',
-      headers: { 'User-Agent': USER_AGENT }
+      headers: headers
     });
   });
 
