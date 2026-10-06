@@ -78,6 +78,45 @@ async function fetchApi(url) {
   }
 }
 
+async function tmdbMeta(id, mediaType) {
+  var key = globalThis.TMDB_API_KEY || '';
+  if (!key) return {};
+  var kind = mediaType === 'tv' ? 'tv' : 'movie';
+  try {
+    var resp = await fetch('https://api.themoviedb.org/3/' + kind + '/' + encodeURIComponent(id) + '?api_key=' + key + '&language=fr-FR', { headers: { 'User-Agent': USER_AGENT } });
+    if (!resp.ok) return {};
+    var d = await resp.json();
+    if (!d) return {};
+    if (mediaType === 'tv') {
+      return {
+        title: d.name || '',
+        year: d.first_air_date ? d.first_air_date.slice(0, 4) : '',
+        duration: d.episode_run_time && d.episode_run_time.length ? d.episode_run_time[0] : 0
+      };
+    }
+    return {
+      title: d.title || '',
+      year: d.release_date ? d.release_date.slice(0, 4) : '',
+      duration: d.runtime || 0
+    };
+  } catch (e) {
+    console.warn('[AlphaVisionary] TMDB indisponible : ' + e.message);
+    return {};
+  }
+}
+
+function buildTitle(meta, isMovie, season, episode, source) {
+  var line1;
+  if (isMovie) {
+    line1 = meta.title ? meta.title + (meta.year ? ' - ' + meta.year : '') : 'Film';
+  } else {
+    line1 = 'S' + two(season || 1) + ' E' + two(episode || 1) + (meta.title ? ' - ' + meta.title : '');
+  }
+  var line2 = 'Source : ' + source;
+  var line3 = 'M3U8' + (meta.duration ? ' | ' + meta.duration + ' min' : '');
+  return line1 + '\n' + line2 + '\n' + line3;
+}
+
 async function getStreams(tmdbId, mediaType, season, episode) {
   var type = mediaType === 'tv' ? 'serie' : 'movie';
   var isMovie = mediaType !== 'tv';
@@ -86,13 +125,14 @@ async function getStreams(tmdbId, mediaType, season, episode) {
     url += '&season=' + (season || 1) + '&episode=' + (episode || 1);
   }
 
+  var metaPromise = tmdbMeta(tmdbId, mediaType);
   var data = await fetchApi(url);
+  var meta = await metaPromise;
   if (!data || (data.status && data.status !== 'ok')) {
     console.log('[AlphaVisionary] ' + (data && data.message ? data.message : 'Aucun resultat.'));
     return [];
   }
 
-  var label = isMovie ? 'Film' : 'S' + two(season || 1) + 'E' + two(episode || 1);
   var results = [];
   (data.streams || []).forEach(function (s) {
     if (!s || !s.url) return;
@@ -110,12 +150,16 @@ async function getStreams(tmdbId, mediaType, season, episode) {
     } else if (host.indexOf('finepulfe.xyz') !== -1) {
       source = 'Pur';
     }
+    var display = buildTitle(meta, isMovie, season, episode, source || host);
     results.push({
       name: 'Source : ' + (source || host),
-      title: 'AlphaVisionary — ' + label + ' | Source : ' + (source || host),
+      title: display,
+      size: display,
+      description: display,
       url: s.url,
       quality: '',
-      type: 'hls',
+      language: '',
+      format: 'm3u8',
       headers: headers
     });
   });

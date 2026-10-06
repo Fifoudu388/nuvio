@@ -1,12 +1,15 @@
 const { getStreams } = require('./providers/alphavisionary.js');
 
+globalThis.TMDB_API_KEY = process.env.TMDB_API_KEY || '';
+
 async function run(label, fn) {
   try {
     const streams = await fn();
     console.log(`\n=== ${label} ===`);
     console.log('Streams trouvés:', streams.length);
     streams.forEach((s, i) => {
-      console.log(`  [${i}] ${s.title}`);
+      console.log(`  [${i}] name=${JSON.stringify(s.name)}`);
+      console.log(`      title:\n${s.title.split('\n').map(l => '        ' + l).join('\n')}`);
       console.log(`      ${s.url}`);
       console.log(`      headers: ${JSON.stringify(s.headers)}`);
     });
