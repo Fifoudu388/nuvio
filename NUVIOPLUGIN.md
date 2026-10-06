@@ -138,3 +138,42 @@ node -e "const {getStreams}=require('./providers/monprovider.js'); getStreams('5
 ```
 
 ⚠️ V8 (Node) ≠ QuickJS (app) : toujours re-tester dans l'app (Settings → Plugin Tester).
+
+## Scraper réalisé : AlphaVisionary (α-visionary.xo.je)
+
+Repo : `https://github.com/Fifoudu388/nuvio` — manifest : `.../refs/heads/master/manifest.json`
+
+### API
+- Films : `GET https://alpha-visionary.xo.je/stream.php?type=movie&id=<tmdbId>` → `{"status":"ok","streams":[{"url":"https://finepulfe.xyz/..."}]}`
+- Séries : `?type=serie&id=<tmdbId>&season=N&episode=M` (le type `tv` = chaînes live, inutilisable)
+- Parfois plusieurs URLs dans `streams` → on **saute les liens embed** (`/embed/` ou host `embed.*`) et on affiche les autres.
+
+### Anti-bot (obligatoire pour cette API)
+1. Sans cookie, l'API renvoie une page HTML de challenge :
+   `var a=toNumbers("<hex>"),b=toNumbers("<hex>"),c=toNumbers("<hex>")`
+   (a = clé, b = IV, c = ciphertext, mode CBC temps AES-128).
+2. Cookie = `__test=<hex(aes-128-cbc-decrypt(c, key=a, iv=b))>` (NoPadding, chiffré sur 1 bloc).
+3. Relancer la requête avec `Cookie: __test=...`.
+- Implémentation : `CryptoJS.AES.decrypt({ciphertext: Hex.parse(c)}, Hex.parse(a), {iv: Hex.parse(b), mode: CBC, padding: NoPadding})`.
+- ⚠️ Piège regex : `/toNumbers\("([0-9a-f]+)"\)/` matche `be` dans le mot `toNumbers` → toujours utiliser une boucle `exec` avec groupe de capture, pas `str.match(...)[N]`.
+- NB : clés `a`/`b` fixes sur ce site (`f655ba...` / `9834...`), seul `c` change par requête.
+
+### Sources & headers
+- `vdohls.com` → **403 sans** `Origin: https://fembed.co` + `Referer: https://fembed.co/` (et **403 avec** un mauvais referer) → label `Source : VDO`
+- `*.finepulfe.xyz` → **marche SANS referer** (un referer = 403) → label `Source : Pur`
+
+### Affichage style Purstream (important pour l'UX)
+Nuvio affiche `name` + `language`. Format "propre" constaté sur Porstream (`All-in-One-Nuvio/providers/purstream.js`) :
+- Champ `name` = label court (ex. `Source : Pur`) — remplace le nom du provider.
+- Champ `title`/`description`/`size` = **chaîne multi-lignes** avec `\n` :
+  ```
+  <Titre> - <Année>        (film)  |  S01 E01 - <Nom série>   (tv)
+  Source : Pur
+  M3U8 | 99 min
+  ```
+- `quality: ''`, `language: ''` (sinon allergies au `fr` parasite), `format`, `headers`.
+- Titre/année/durée : récupérés via TMDB → `GET https://api.themoviedb.org/3/{movie|tv}/{id}?api_key=<globalThis.TMDB_API_KEY>&language=fr-FR` (key dispo en app, pas en local).
+- Fallback si pas de clé TMDB : ligne 1 = `Film` ou `Sxx Exx`.
+
+### Test local
+`npm test` (test.js) ; clé TMDB optionnelle via env `TMDB_API_KEY`.
